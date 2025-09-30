@@ -1,48 +1,39 @@
 import React from 'react';
-import { Navbar, Nav, Container, NavDropdown } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
-import { authService } from '../services/auth';
+import { Navbar, Nav, Container } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 
 const NavigationBar = () => {
-  const navigate = useNavigate();
-  const user = authService.getUser();
-
-  const handleLogout = () => {
-    authService.logout();
-    navigate('/login');
-  };
-
+  // REMOVA completamente qualquer referência ao authService
+  
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
       <Container>
         <Navbar.Brand as={Link} to="/">
-          PetShop Agendamentos
+          🐾 PetShop Agendamentos
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
             <Nav.Link as={Link} to="/">
-              Dashboard
+              📊 Dashboard
             </Nav.Link>
             <Nav.Link as={Link} to="/clientes">
-              Clientes
+              👥 Clientes
             </Nav.Link>
             <Nav.Link as={Link} to="/pets">
-              Pets
+              🐶 Pets
             </Nav.Link>
             <Nav.Link as={Link} to="/agendamentos">
-              Agendamentos
+              📅 Agendamentos
             </Nav.Link>
             <Nav.Link as={Link} to="/servicos">
-              Serviços
+              🔧 Serviços
             </Nav.Link>
           </Nav>
           <Nav>
-            <NavDropdown title={`Olá, ${user?.first_name || user?.username}`} id="user-dropdown">
-              <NavDropdown.Item onClick={handleLogout}>
-                Sair
-              </NavDropdown.Item>
-            </NavDropdown>
+            <Nav.Link as={Link} to="/" className="text-success">
+              ✅ Sistema Aberto
+            </Nav.Link>
           </Nav>
         </Navbar.Collapse>
       </Container>

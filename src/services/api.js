@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { authService } from './auth';
 
-const API_BASE_URL = 'https://petshop-backend-f4nc.onrender.com/api';
+const API_BASE_URL = 'https://petshop-backend-f4nc.onrender.com/api'; 
+// const API_BASE_URL = 'http://localhost:8000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -11,31 +11,9 @@ const api = axios.create({
   withCredentials: false, 
 });
 
-// Interceptor para adicionar token automaticamente
-api.interceptors.request.use(
-  (config) => {
-    const token = authService.getToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 
-// Interceptor para tratar erros de autenticação
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      authService.logout();
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
+
+
 
 // Interceptor para requests
 api.interceptors.request.use(

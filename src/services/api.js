@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { authService } from './auth';
 
-const API_BASE_URL = 'https://petshop-backend-f4nc.onrender.com';
+const API_BASE_URL = 'https://petshop-backend-f4nc.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

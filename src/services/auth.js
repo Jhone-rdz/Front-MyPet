@@ -1,13 +1,13 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://petshop-backend-f4nc.onrender.com';
+const API_BASE_URL = 'https://petshop-backend-f4nc.onrender.com/api';
 
 export const authService = {
   login: (credentials) => 
-    axios.post(`${API_BASE_URL}/auth/login/`, credentials),
+    axios.post(`${API_BASE_URL}/api/auth/login/`, credentials),
   
   register: (userData) => 
-    axios.post(`${API_BASE_URL}/auth/register/`, userData),
+    axios.post(`${API_BASE_URL}/api/auth/register/`, userData),
   
   logout: () => {
     localStorage.removeItem('token');

@@ -244,23 +244,6 @@ const Dashboard = () => {
               </div>
             </Card.Body>
           </Card>
-
-          <Card className="mt-3">
-            <Card.Header>
-              <h5 className="mb-0">Resumo</h5>
-            </Card.Header>
-            <Card.Body>
-              <p>
-                <strong>{stats.agendamentosHoje}</strong> agendamentos para hoje
-              </p>
-              <p>
-                <strong>{stats.proximosAgendamentos.length}</strong> agendamentos futuros
-              </p>
-              <p>
-                <strong>{stats.totalClientes}</strong> clientes atendidos
-              </p>
-            </Card.Body>
-          </Card>
         </Col>
       </Row>
     </Container>

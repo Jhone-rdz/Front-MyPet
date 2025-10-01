@@ -53,52 +53,7 @@ const ClienteDetail = () => {
       setLoading(false);
     }
   };
-  {/* Modal de Agendamento Rápido */}
-<Modal show={showAgendamentoModal} onHide={() => setShowAgendamentoModal(false)} size="lg">
-  <Modal.Header closeButton>
-    <Modal.Title>Novo Agendamento para {pets.find(p => p.id === selectedPet)?.nome}</Modal.Title>
-  </Modal.Header>
-  <Form onSubmit={(e) => {
-    e.preventDefault();
-    // Lógica simplificada de agendamento
-    navigate('/agendamentos'); // ou implemente a lógica completa aqui
-  }}>
-    <Modal.Body>
-      <Form.Group className="mb-3">
-        <Form.Label>Pet</Form.Label>
-        <Form.Control 
-          type="text" 
-          value={pets.find(p => p.id === selectedPet)?.nome || ''} 
-          disabled 
-        />
-        <Form.Text className="text-muted">
-          Pet selecionado automaticamente
-        </Form.Text>
-      </Form.Group>
-
-      <Form.Group className="mb-3">
-        <Form.Label>Serviço *</Form.Label>
-        <Form.Select required>
-          <option value="">Selecione um serviço</option>
-          {/* Lista de serviços */}
-        </Form.Select>
-      </Form.Group>
-
-      <Form.Group className="mb-3">
-        <Form.Label>Data *</Form.Label>
-        <Form.Control type="datetime-local" required />
-      </Form.Group>
-    </Modal.Body>
-    <Modal.Footer>
-      <Button variant="secondary" onClick={() => setShowAgendamentoModal(false)}>
-        Cancelar
-      </Button>
-      <Button variant="primary" type="submit">
-        Agendar
-      </Button>
-    </Modal.Footer>
-  </Form>
-</Modal>
+  
 
   const getEspecieBadge = (especie) => {
     const especies = {
@@ -298,14 +253,11 @@ const ClienteDetail = () => {
                         >
                           Ver Detalhes
                         <Button
-                          variant="primary"
+                          variant="outline-primary"
                           size="sm"
-                          onClick={() => {
-                          setSelectedPet(pet.id);
-                          setShowAgendamentoModal(true);
-                        }}
+                          onClick={() => navigate(`/agendamentos/novo?pet=${pet.id}`)}
                         >
-                        Agendar
+                          Agendar
                         </Button>
                       </td>
                     </tr>

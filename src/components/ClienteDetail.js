@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Container, Card, Row, Col, Table, Button, Badge, Spinner, Alert } from 'react-bootstrap';
 import { clienteService, petService } from '../services/api';
+const [showAgendamentoModal, setShowAgendamentoModal] = useState(false);
+const [selectedPet, setSelectedPet] = useState(null);
 
 const ClienteDetail = () => {
   const { id } = useParams();
@@ -51,6 +53,52 @@ const ClienteDetail = () => {
       setLoading(false);
     }
   };
+  {/* Modal de Agendamento Rápido */}
+<Modal show={showAgendamentoModal} onHide={() => setShowAgendamentoModal(false)} size="lg">
+  <Modal.Header closeButton>
+    <Modal.Title>Novo Agendamento para {pets.find(p => p.id === selectedPet)?.nome}</Modal.Title>
+  </Modal.Header>
+  <Form onSubmit={(e) => {
+    e.preventDefault();
+    // Lógica simplificada de agendamento
+    navigate('/agendamentos'); // ou implemente a lógica completa aqui
+  }}>
+    <Modal.Body>
+      <Form.Group className="mb-3">
+        <Form.Label>Pet</Form.Label>
+        <Form.Control 
+          type="text" 
+          value={pets.find(p => p.id === selectedPet)?.nome || ''} 
+          disabled 
+        />
+        <Form.Text className="text-muted">
+          Pet selecionado automaticamente
+        </Form.Text>
+      </Form.Group>
+
+      <Form.Group className="mb-3">
+        <Form.Label>Serviço *</Form.Label>
+        <Form.Select required>
+          <option value="">Selecione um serviço</option>
+          {/* Lista de serviços */}
+        </Form.Select>
+      </Form.Group>
+
+      <Form.Group className="mb-3">
+        <Form.Label>Data *</Form.Label>
+        <Form.Control type="datetime-local" required />
+      </Form.Group>
+    </Modal.Body>
+    <Modal.Footer>
+      <Button variant="secondary" onClick={() => setShowAgendamentoModal(false)}>
+        Cancelar
+      </Button>
+      <Button variant="primary" type="submit">
+        Agendar
+      </Button>
+    </Modal.Footer>
+  </Form>
+</Modal>
 
   const getEspecieBadge = (especie) => {
     const especies = {
@@ -249,13 +297,15 @@ const ClienteDetail = () => {
                           className="me-2"
                         >
                           Ver Detalhes
-                        </Button>
                         <Button
-                          variant="outline-primary"
+                          variant="primary"
                           size="sm"
-                          onClick={() => navigate(`/agendamentos/novo?pet=${pet.id}`)}
+                          onClick={() => {
+                          setSelectedPet(pet.id);
+                          setShowAgendamentoModal(true);
+                        }}
                         >
-                          Agendar
+                        Agendar
                         </Button>
                       </td>
                     </tr>

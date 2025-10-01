@@ -33,7 +33,7 @@ function App() {
             <Route path="/agendamentos" element={<Agendamentos />} />
             <Route path="/servicos" element={<Servicos />} />
             <Route path="*" element={<Navigate to="/" />} />
-            <Route path="/agendamentos/novo" element={<NovoAgendamento />} />
+            <Route path="/agendamentos/novo" element={<Agendamentos />} />
           </Routes>
         </div>
       </div>

@@ -3,7 +3,8 @@ import { Table, Button, Modal, Form, Alert, Row, Col, Card, Spinner } from 'reac
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { agendamentoService, clienteService, petService, servicoService } from '../services/api';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+
 
 const Agendamentos = () => {
   const [agendamentos, setAgendamentos] = useState([]);
@@ -14,8 +15,18 @@ const Agendamentos = () => {
   const [servicosData, setServicosData] = useState([]);
   const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [editSelectedDate, setEditSelectedDate] = useState(null);
   const [formData, setFormData] = useState({
+    pet: '',
+    servico: '',
+    data_agendamento: '',
+    observacoes: '',
+    status: 'agendado'
+  });
+  const [editFormData, setEditFormData] = useState({
+    id: '',
     pet: '',
     servico: '',
     data_agendamento: '',
@@ -25,9 +36,7 @@ const Agendamentos = () => {
   const [alert, setAlert] = useState({ show: false, message: '', type: '' });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-
-  // FUNÇÃO formatarHorario - ADICIONE ESTA FUNÇÃO
-  
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     loadAgendamentos();
@@ -39,7 +48,6 @@ const Agendamentos = () => {
   const loadAgendamentos = async () => {
     try {
       const response = await agendamentoService.getAll();
-      // CORREÇÃO: Verificar se a resposta é paginada
       const agendamentosData = Array.isArray(response.data) 
         ? response.data 
         : response.data.results || [];
@@ -54,7 +62,6 @@ const Agendamentos = () => {
   const loadClientes = async () => {
     try {
       const response = await clienteService.getAll();
-      // CORREÇÃO: Verificar se a resposta é paginada
       const clientesData = Array.isArray(response.data) 
         ? response.data 
         : response.data.results || [];
@@ -67,7 +74,6 @@ const Agendamentos = () => {
   const loadServicos = async () => {
     try {
       const response = await servicoService.getAll();
-      // CORREÇÃO: Verificar se a resposta é paginada
       const servicosData = Array.isArray(response.data) 
         ? response.data 
         : response.data.results || [];
@@ -84,7 +90,6 @@ const Agendamentos = () => {
         servicoService.getAll()
       ]);
       
-      // CORREÇÃO: Verificar se as respostas são paginadas
       const petsData = Array.isArray(petsRes.data) 
         ? petsRes.data 
         : petsRes.data.results || [];
@@ -102,7 +107,6 @@ const Agendamentos = () => {
   const loadPetsByCliente = async (clienteId) => {
     try {
       const response = await petService.getAll();
-      // CORREÇÃO: Verificar se a resposta é paginada
       const petsData = Array.isArray(response.data) 
         ? response.data 
         : response.data.results || [];
@@ -113,22 +117,49 @@ const Agendamentos = () => {
     }
   };
 
-  const loadHorariosDisponiveis = async (date, servicoId) => {
+  const loadEditPetsByCliente = async (clienteId) => {
+    try {
+      const response = await petService.getAll();
+      const petsData = Array.isArray(response.data) 
+        ? response.data 
+        : response.data.results || [];
+      const petsDoCliente = petsData.filter(pet => pet.cliente == clienteId);
+      return petsDoCliente;
+    } catch (error) {
+      showAlert('Erro ao carregar pets', 'danger');
+      return [];
+    }
+  };
+
+  const loadHorariosDisponiveis = async (date, servicoId, isEdit = false, agendamentoId = null) => {
     if (date && servicoId) {
       try {
         const dataStr = date.toISOString().split('T')[0];
         const response = await agendamentoService.getHorariosDisponiveis(dataStr, servicoId);
         
-        // Log para debug
         console.log('Resposta da API - Horários:', response.data);
         
-        setHorariosDisponiveis(response.data.horarios_disponiveis || []);
+        // Se for edição, inclui o horário atual do agendamento
+        let horarios = response.data.horarios_disponiveis || [];
+        if (isEdit && agendamentoId) {
+          const agendamento = agendamentos.find(a => a.id === agendamentoId);
+          if (agendamento && agendamento.data_agendamento) {
+            const horarioAtual = new Date(agendamento.data_agendamento).toTimeString().split(' ')[0].substring(0, 5);
+            if (!horarios.includes(horarioAtual)) {
+              horarios.push(horarioAtual);
+              horarios.sort();
+            }
+          }
+        }
+        
+        setHorariosDisponiveis(horarios);
       } catch (error) {
         console.error('Erro ao carregar horários:', error);
         showAlert('Erro ao carregar horários disponíveis', 'danger');
       }
     }
   };
+  const navigate = useNavigate();
 
   const showAlert = (message, type) => {
     setAlert({ show: true, message, type });
@@ -158,61 +189,169 @@ const Agendamentos = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setSubmitting(true);
+    e.preventDefault();
+    setSubmitting(true);
 
-  try {
-    if (!formData.pet || !formData.servico || !formData.data_agendamento || !selectedDate) {
-      showAlert('Preencha todos os campos obrigatórios', 'danger');
-      return;
+    try {
+      if (!formData.pet || !formData.servico || !formData.data_agendamento || !selectedDate) {
+        showAlert('Preencha todos os campos obrigatórios', 'danger');
+        return;
+      }
+
+      let horarioPart = formData.data_agendamento;
+      if (horarioPart.includes('T')) {
+        const dataObj = new Date(horarioPart);
+        horarioPart = dataObj.toTimeString().split(' ')[0].substring(0, 5);
+      }
+
+      const localDate = new Date(selectedDate);
+      localDate.setHours(Number(horarioPart.split(':')[0]));
+      localDate.setMinutes(Number(horarioPart.split(':')[1]));
+      localDate.setSeconds(0);
+
+      const dataISO = localDate.toISOString().slice(0, 19);
+
+      const agendamentoData = {
+        pet: formData.pet,
+        servico: formData.servico,
+        data_agendamento: dataISO,
+        observacoes: formData.observacoes,
+        status: 'agendado'
+      };
+
+      console.log('Dados do agendamento:', agendamentoData);
+
+      await agendamentoService.create(agendamentoData);
+      showAlert('Agendamento criado com sucesso!', 'success');
+
+      setShowModal(false);
+      setFormData({ pet: '', servico: '', data_agendamento: '', observacoes: '', status: 'agendado' });
+      setSelectedDate(null);
+      setHorariosDisponiveis([]);
+      setPets([]);
+
+      loadAgendamentos();
+
+    } catch (error) {
+      console.error('Erro detalhado:', error.response?.data || error);
+      const errorMsg = error.response?.data?.error || error.response?.data?.detail || error.message;
+      showAlert(`Erro ao criar agendamento: ${errorMsg}`, 'danger');
+    } finally {
+      setSubmitting(false);
     }
+  };
 
-    // Extrair apenas a parte do horário (HH:MM)
-    let horarioPart = formData.data_agendamento;
-    if (horarioPart.includes('T')) {
-      const dataObj = new Date(horarioPart);
-      horarioPart = dataObj.toTimeString().split(' ')[0].substring(0, 5);
+  const handleEdit = async (agendamento) => {
+    try {
+      setEditing(true);
+      
+      // Encontrar o cliente do pet
+      const pet = petsData.find(p => p.id === agendamento.pet);
+      if (!pet) {
+        showAlert('Pet não encontrado', 'danger');
+        return;
+      }
+
+      // Carregar pets do cliente
+      const petsDoCliente = await loadEditPetsByCliente(pet.cliente);
+      
+      // Configurar dados do formulário de edição
+      setEditFormData({
+        id: agendamento.id,
+        pet: agendamento.pet,
+        servico: agendamento.servico,
+        data_agendamento: agendamento.data_agendamento ? 
+          new Date(agendamento.data_agendamento).toTimeString().split(' ')[0].substring(0, 5) : '',
+        observacoes: agendamento.observacoes || '',
+        status: agendamento.status
+      });
+
+      // Configurar data selecionada
+      const dataAgendamento = agendamento.data_agendamento ? 
+        new Date(agendamento.data_agendamento) : null;
+      setEditSelectedDate(dataAgendamento);
+
+      // Configurar pets do cliente
+      setPets(petsDoCliente);
+
+      // Carregar horários disponíveis
+      if (dataAgendamento && agendamento.servico) {
+        await loadHorariosDisponiveis(
+          dataAgendamento, 
+          agendamento.servico, 
+          true, 
+          agendamento.id
+        );
+      }
+
+      setShowEditModal(true);
+    } catch (error) {
+      console.error('Erro ao carregar dados para edição:', error);
+      showAlert('Erro ao carregar dados para edição', 'danger');
+    } finally {
+      setEditing(false);
     }
+  };
 
-    // Ajuste para o fuso horário de São Paulo (UTC-3)
-    const localDate = new Date(selectedDate);
-    localDate.setHours(Number(horarioPart.split(':')[0]));
-    localDate.setMinutes(Number(horarioPart.split(':')[1]));
-    localDate.setSeconds(0);
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
 
+    try {
+      if (!editFormData.pet || !editFormData.servico || !editFormData.data_agendamento || !editSelectedDate) {
+        showAlert('Preencha todos os campos obrigatórios', 'danger');
+        return;
+      }
 
+      let horarioPart = editFormData.data_agendamento;
+      if (horarioPart.includes('T')) {
+        const dataObj = new Date(horarioPart);
+        horarioPart = dataObj.toTimeString().split(' ')[0].substring(0, 5);
+      }
 
-    const dataISO = localDate.toISOString().slice(0, 19); // YYYY-MM-DDTHH:MM:SS
+      const localDate = new Date(editSelectedDate);
+      localDate.setHours(Number(horarioPart.split(':')[0]));
+      localDate.setMinutes(Number(horarioPart.split(':')[1]));
+      localDate.setSeconds(0);
 
-    const agendamentoData = {
-      pet: formData.pet,
-      servico: formData.servico,
-      data_agendamento: dataISO,
-      observacoes: formData.observacoes,
-      status: 'agendado'
-    };
+      const dataISO = localDate.toISOString().slice(0, 19);
 
-    console.log('Dados do agendamento:', agendamentoData);
+      const agendamentoData = {
+        pet: editFormData.pet,
+        servico: editFormData.servico,
+        data_agendamento: dataISO,
+        observacoes: editFormData.observacoes,
+        status: editFormData.status
+      };
 
-    await agendamentoService.create(agendamentoData);
-    showAlert('Agendamento criado com sucesso!', 'success');
+      console.log('Dados do agendamento (edição):', agendamentoData);
 
-    setShowModal(false);
-    setFormData({ pet: '', servico: '', data_agendamento: '', observacoes: '', status: 'agendado' });
-    setSelectedDate(null);
-    setHorariosDisponiveis([]);
-    setPets([]);
+      await agendamentoService.update(editFormData.id, agendamentoData);
+      showAlert('Agendamento atualizado com sucesso!', 'success');
 
-    loadAgendamentos();
+      setShowEditModal(false);
+      setEditFormData({ 
+        id: '', 
+        pet: '', 
+        servico: '', 
+        data_agendamento: '', 
+        observacoes: '', 
+        status: 'agendado' 
+      });
+      setEditSelectedDate(null);
+      setHorariosDisponiveis([]);
+      setPets([]);
 
-  } catch (error) {
-    console.error('Erro detalhado:', error.response?.data || error);
-    const errorMsg = error.response?.data?.error || error.response?.data?.detail || error.message;
-    showAlert(`Erro ao criar agendamento: ${errorMsg}`, 'danger');
-  } finally {
-    setSubmitting(false);
-  }
-};
+      loadAgendamentos();
+
+    } catch (error) {
+      console.error('Erro detalhado na edição:', error.response?.data || error);
+      const errorMsg = error.response?.data?.error || error.response?.data?.detail || error.message;
+      showAlert(`Erro ao atualizar agendamento: ${errorMsg}`, 'danger');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleStatusChange = async (id, novoStatus) => {
     try {
@@ -224,7 +363,6 @@ const Agendamentos = () => {
       showAlert('Erro ao atualizar status', 'danger');
     }
   };
-  
 
   const handleDelete = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este agendamento?')) {
@@ -345,60 +483,81 @@ const Agendamentos = () => {
       </Card>
 
       {/* Todos os agendamentos */}
-      <Card>
-        <Card.Header>
-          <h5 className="mb-0">Todos os Agendamentos</h5>
-        </Card.Header>
-        <Card.Body>
-          <div className="table-responsive">
-            <Table striped bordered hover>
-              <thead>
-                <tr>
-                  <th>Data/Hora</th>
-                  <th>Pet</th>
-                  <th>Serviço</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {agendamentos.map(agendamento => (
-                  <tr key={agendamento.id}>
-                    <td>
-                      {agendamento.data_agendamento ? 
-                        new Date(agendamento.data_agendamento).toLocaleString('pt-BR') : '-'}
-                    </td>
-                    <td>
-  <Link to={`/pets/${agendamento.pet}`} className="text-decoration-none">
-    {getPetName(agendamento)}
-  </Link>
-</td>
-<td>
-  <Link to={`/servicos/${agendamento.servico}`} className="text-decoration-none">
-    {getServicoName(agendamento)}
-  </Link>
-</td>
-                    <td>
-                      <span className={`badge bg-${getStatusBadge(agendamento.status)}`}>
-                        {agendamento.status}
-                      </span>
-                    </td>
-                    <td>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => handleDelete(agendamento.id)}
-                      >
-                        Excluir
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
-        </Card.Body>
-      </Card>
+      // Todos os agendamentos - coluna de ações atualizada
+<Card>
+  <Card.Header>
+    <h5 className="mb-0">Todos os Agendamentos</h5>
+  </Card.Header>
+  <Card.Body>
+    <div className="table-responsive">
+      <Table striped bordered hover>
+        <thead>
+          <tr>
+            <th>Data/Hora</th>
+            <th>Pet</th>
+            <th>Serviço</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {agendamentos.map(agendamento => (
+            <tr key={agendamento.id}>
+              <td>
+                {agendamento.data_agendamento ? 
+                  new Date(agendamento.data_agendamento).toLocaleString('pt-BR') : '-'}
+              </td>
+              <td>
+                <Link to={`/pets/${agendamento.pet}`} className="text-decoration-none">
+                  {getPetName(agendamento)}
+                </Link>
+              </td>
+              <td>
+                <Link to={`/servicos/${agendamento.servico}`} className="text-decoration-none">
+                  {getServicoName(agendamento)}
+                </Link>
+              </td>
+              <td>
+                <span className={`badge bg-${getStatusBadge(agendamento.status)}`}>
+                  {agendamento.status}
+                </span>
+              </td>
+              <td>
+                <div className="btn-group" role="group">
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    onClick={() => handleEdit(agendamento)}
+                    disabled={editing}
+                    title="Editar agendamento"
+                  >
+                    Editar
+                  </Button>
+                  <Button
+                    variant="outline-info"
+                    size="sm"
+                    onClick={() => navigate(`/agendamentos/${agendamento.id}`)}
+                    title="Ver detalhes"
+                  >
+                    Detalhes
+                  </Button>
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
+                    onClick={() => handleDelete(agendamento.id)}
+                    title="Excluir agendamento"
+                  >
+                    Excluir
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </div>
+  </Card.Body>
+</Card>
 
       {/* Modal de Novo Agendamento */}
       <Modal show={showModal} onHide={() => {
@@ -563,6 +722,176 @@ const Agendamentos = () => {
                 </>
               ) : (
                 'Agendar'
+              )}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* Modal de Edição de Agendamento */}
+      <Modal show={showEditModal} onHide={() => {
+        setShowEditModal(false);
+        setEditFormData({ 
+          id: '', 
+          pet: '', 
+          servico: '', 
+          data_agendamento: '', 
+          observacoes: '', 
+          status: 'agendado' 
+        });
+        setEditSelectedDate(null);
+        setHorariosDisponiveis([]);
+        setPets([]);
+      }} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Editar Agendamento</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleEditSubmit}>
+          <Modal.Body>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Status</Form.Label>
+                  <Form.Select
+                    value={editFormData.status}
+                    onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
+                  >
+                    <option value="agendado">Agendado</option>
+                    <option value="confirmado">Confirmado</option>
+                    <option value="cancelado">Cancelado</option>
+                    <option value="concluido">Concluído</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Pet *</Form.Label>
+                  <Form.Select
+                    required
+                    value={editFormData.pet}
+                    onChange={(e) => setEditFormData({...editFormData, pet: e.target.value})}
+                    disabled={pets.length === 0}
+                  >
+                    <option value="">Selecione um pet</option>
+                    {pets.map(pet => (
+                      <option key={pet.id} value={pet.id}>
+                        {pet.nome}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Serviço *</Form.Label>
+                  <Form.Select
+                    required
+                    value={editFormData.servico}
+                    onChange={(e) => {
+                      setEditFormData({...editFormData, servico: e.target.value});
+                      if (editSelectedDate) {
+                        loadHorariosDisponiveis(editSelectedDate, e.target.value, true, editFormData.id);
+                      }
+                    }}
+                  >
+                    <option value="">Selecione um serviço</option>
+                    {servicos.map(servico => (
+                      <option key={servico.id} value={servico.id}>
+                        {servico.nome} - R$ {servico.preco}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Data *</Form.Label>
+                  <DatePicker
+                    selected={editSelectedDate}
+                    onChange={(date) => {
+                      setEditSelectedDate(date);
+                      if (editFormData.servico) {
+                        loadHorariosDisponiveis(date, editFormData.servico, true, editFormData.id);
+                      }
+                    }}
+                    dateFormat="dd/MM/yyyy"
+                    className="form-control"
+                    minDate={new Date()}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Horário Disponível *</Form.Label>
+              <Form.Select
+                required
+                value={editFormData.data_agendamento}
+                onChange={(e) => setEditFormData({...editFormData, data_agendamento: e.target.value})}
+                disabled={horariosDisponiveis.length === 0}
+              >
+                <option value="">Selecione um horário</option>
+                {horariosDisponiveis.map((horario, index) => (
+                  <option key={index} value={horario}>
+                    {horario}
+                  </option>
+                ))}
+              </Form.Select>
+              {horariosDisponiveis.length === 0 && editSelectedDate && editFormData.servico && (
+                <Form.Text className="text-danger">
+                  Não há horários disponíveis para esta data e serviço.
+                </Form.Text>
+              )}
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Observações</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={editFormData.observacoes}
+                onChange={(e) => setEditFormData({...editFormData, observacoes: e.target.value})}
+                placeholder="Observações sobre o agendamento..."
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button 
+              variant="secondary" 
+              onClick={() => {
+                setShowEditModal(false);
+                setEditFormData({ 
+                  id: '', 
+                  pet: '', 
+                  servico: '', 
+                  data_agendamento: '', 
+                  observacoes: '', 
+                  status: 'agendado' 
+                });
+                setEditSelectedDate(null);
+                setHorariosDisponiveis([]);
+                setPets([]);
+              }}
+              disabled={submitting}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="primary" 
+              type="submit"
+              disabled={!editFormData.pet || !editFormData.servico || !editFormData.data_agendamento || submitting}
+            >
+              {submitting ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Atualizando...
+                </>
+              ) : (
+                'Atualizar'
               )}
             </Button>
           </Modal.Footer>

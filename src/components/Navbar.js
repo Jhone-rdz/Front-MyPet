@@ -1,15 +1,22 @@
 import React from 'react';
 import { Navbar, Nav, Container } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const NavigationBar = () => {
-  // REMOVA completamente qualquer referência ao authService
-  
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Remove a autenticação do localStorage
+    localStorage.removeItem('isAuthenticated');
+    // Redireciona para a tela de login
+    navigate('/login');
+  };
+
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
       <Container>
         <Navbar.Brand as={Link} to="/">
-          🐾 PetShop Agendamentos
+          🐾 MyPet
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
@@ -31,8 +38,12 @@ const NavigationBar = () => {
             </Nav.Link>
           </Nav>
           <Nav>
-            <Nav.Link as={Link} to="/" className="text-success">
-              ✅ Sistema Aberto
+            <Nav.Link 
+              onClick={handleLogout} 
+              className="text-warning"
+              style={{ cursor: 'pointer' }}
+            >
+              🚪 Sair
             </Nav.Link>
           </Nav>
         </Navbar.Collapse>

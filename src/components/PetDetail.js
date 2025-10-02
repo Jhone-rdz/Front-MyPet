@@ -333,11 +333,11 @@ const PetDetail = () => {
                               <td>{agendamento.servico_preco ? formatarPreco(agendamento.servico_preco) : '-'}</td>
                               <td>
                                 <Button
-                                  variant="outline-info"
-                                  size="sm"
-                                  onClick={() => navigate(`/agendamentos/${agendamento.id}`)}
+                                variant="outline-info"
+                                size="sm"
+                                onClick={() => navigate(`/agendamentos/${agendamento.id}`)}
                                 >
-                                  Detalhes
+                                Detalhes
                                 </Button>
                               </td>
                             </tr>

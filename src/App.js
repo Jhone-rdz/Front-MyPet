@@ -12,12 +12,12 @@ import Pets from './components/Pets';
 import PetDetail from './components/PetDetail';
 import PetForm from './components/PetForm';
 import Agendamentos from './components/Agendamentos';
+import AgendamentoDetail from './components/AgendamentoDetail';
 import Servicos from './components/Servicos';
+import ServicoDetail from './components/ServicoDetail';
+import ServicoForm from './components/ServicoForm';
 import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
-import ServicoForm from './components/ServicoForm';
-import ServicoDetail from './components/ServicoDetail';
-import AgendamentoDetail from './components/AgendamentoDetail';
 
 function App() {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
@@ -38,16 +38,6 @@ function App() {
             
             {/* Rotas protegidas */}
             <Route 
-              path="/agendamentos/:id" 
-              element={
-              <ProtectedRoute>
-              <AgendamentoDetail />
-              </ProtectedRoute>
-              } 
-            />
-            
-            
-            <Route 
               path="/" 
               element={
                 <ProtectedRoute>
@@ -55,6 +45,8 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+            
+            {/* Rotas de Clientes */}
             <Route 
               path="/clientes" 
               element={
@@ -68,14 +60,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ClienteForm />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/servicos/:id" 
-              element={
-                <ProtectedRoute>
-                  <ServicoDetail />
                 </ProtectedRoute>
               } 
             />
@@ -95,14 +79,8 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/servicos/editar/:id" 
-              element={
-                <ProtectedRoute>
-                  <ServicoForm />
-                </ProtectedRoute>
-              } 
-            />
+            
+            {/* Rotas de Pets */}
             <Route 
               path="/pets" 
               element={
@@ -135,6 +113,8 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+            
+            {/* Rotas de Agendamentos */}
             <Route 
               path="/agendamentos" 
               element={
@@ -144,6 +124,24 @@ function App() {
               } 
             />
             <Route 
+              path="/agendamentos/novo" 
+              element={
+                <ProtectedRoute>
+                  <Agendamentos />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/agendamentos/:id" 
+              element={
+                <ProtectedRoute>
+                  <AgendamentoDetail />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Rotas de Serviços */}
+            <Route 
               path="/servicos" 
               element={
                 <ProtectedRoute>
@@ -152,10 +150,26 @@ function App() {
               } 
             />
             <Route 
-              path="/agendamentos/novo" 
+              path="/servicos/novo" 
               element={
                 <ProtectedRoute>
-                  <Agendamentos />
+                  <ServicoForm />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/servicos/editar/:id" 
+              element={
+                <ProtectedRoute>
+                  <ServicoForm />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/servicos/:id" 
+              element={
+                <ProtectedRoute>
+                  <ServicoDetail />
                 </ProtectedRoute>
               } 
             />

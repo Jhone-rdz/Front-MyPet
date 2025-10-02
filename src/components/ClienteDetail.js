@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Container, Card, Row, Col, Table, Button, Badge, Spinner, Alert } from 'react-bootstrap';
 import { clienteService, petService } from '../services/api';
+const [showAgendamentoModal, setShowAgendamentoModal] = useState(false);
+const [selectedPet, setSelectedPet] = useState(null);
 
 const ClienteDetail = () => {
   const { id } = useParams();
@@ -51,6 +53,7 @@ const ClienteDetail = () => {
       setLoading(false);
     }
   };
+  
 
   const getEspecieBadge = (especie) => {
     const especies = {
@@ -249,7 +252,6 @@ const ClienteDetail = () => {
                           className="me-2"
                         >
                           Ver Detalhes
-                        </Button>
                         <Button
                           variant="outline-primary"
                           size="sm"
